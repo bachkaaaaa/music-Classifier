@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      context: ./Front
+      dockerfile: Dockerfile
+    ports:
+      - "1000:4200" # Adjust the port mapping as per your frontend app
+    volumes:
+      - ./Front:/app
+    environment:
+      - NODE_ENV=development
+
+  model_svm:
+    build:
+      context: ./Back/Model_SVM
+      dockerfile: Dockerfile
+    ports:
+      - "1001:5000" # Adjust based on your backend app
+    volumes:
+      - ./Back/Model_SVM:/app
+    environment:
+      - MODEL_TYPE=SVM
+
+  model_vgg19:
+    build:
+      context: ./Back/Model_VGG19
+      dockerfile: Dockerfile
+    ports:
+      - "1002:5000" # Adjust based on your backend app
+    volumes:
+      - ./Back/Model_VGG19:/app
+    environment:
+      - MODEL_TYPE=VGG19
+
