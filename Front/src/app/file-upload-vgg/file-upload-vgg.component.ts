@@ -1,12 +1,12 @@
-import { Component } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-file-upload',
-  templateUrl: './file-upload.component.html',
-  styleUrls: ['./file-upload.component.css']
+  selector: 'app-file-upload-vgg',
+  templateUrl: './file-upload-vgg.component.html',
+  styleUrls: ['./file-upload-vgg.component.css']
 })
-export class FileUploadComponent {
+export class FileUploadVggComponent {
   selectedFile: File | null = null;
   predictionResult: string = '';
   errorMessage: string = '';
@@ -28,7 +28,7 @@ export class FileUploadComponent {
     const formData = new FormData();
     formData.append('file', this.selectedFile);
 
-    this.http.post<{ genre: string }>('http://127.0.0.1:1001/predict', formData)
+    this.http.post<{ genre: string }>('http://127.0.0.1:1002/predict', formData)
       .subscribe({
         next: (response) => {
           this.predictionResult = `Predicted genre: ${response.genre}`;
