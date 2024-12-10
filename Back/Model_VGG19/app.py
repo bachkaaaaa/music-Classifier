@@ -9,7 +9,7 @@ from tensorflow.keras.models import load_model
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:1002"])  # Enable CORS for Angular's port
+CORS(app, origins=["http://localhost:1000"])  # Enable CORS for Angular's port
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 

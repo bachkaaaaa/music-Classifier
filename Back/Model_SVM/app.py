@@ -9,7 +9,7 @@ import os
 # Initialize Flask app
 app = Flask(__name__)
 
-CORS(app, origins=["http://localhost:1001"])  # Enable CORS for Angular's port
+CORS(app, origins=["http://localhost:1000"])  # Enable CORS for Angular's port
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
