@@ -28,10 +28,10 @@ export class FileUploadVggComponent {
     const formData = new FormData();
     formData.append('file', this.selectedFile);
 
-    this.http.post<{ genre: string }>('http://127.0.0.1:1002/predict', formData)
+    this.http.post<{ predicted_genre: string }>('http://127.0.0.1:1002/predict', formData)
       .subscribe({
         next: (response) => {
-          this.predictionResult = `Predicted genre: ${response.genre}`;
+          this.predictionResult = `Predicted genre: ${response.predicted_genre}`;
           this.errorMessage = '';
         },
         error: (error: HttpErrorResponse) => {
