@@ -1,75 +1,99 @@
+import os
+import librosa
+import numpy as np
+import tensorflow as tf
+from tensorflow.image import resize
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-import librosa
-import numpy as np
-import os
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-
-# Initialize Flask app
-app = Flask(__name__)
+# Initialisation de l'application Flask
+app = Flask(_name_)
 CORS(app, origins=["http://localhost:1000"])  # Enable CORS for Angular's port
+# Charger le modèle Keras pré-entraîné (assurez-vous que le modèle est dans le même dossier que ce fichier)
+model = tf.keras.models.load_model('Trained_model.h5')
 
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+# Définir les classes des genres musicaux
+classes = ['blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock']
 
-# Load the VGG19 model
-model_path = 'vgg19_genre_classifier.h5'
-model = load_model(model_path)
+# Dossier pour stocker les fichiers téléchargés
+UPLOAD_FOLDER = 'uploads/'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Genres list (ensure it matches the training labels)
-genres = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
+# Configurer Flask pour accepter les fichiers
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = {'wav'}
 
-# Define the function to predict genre
-def predict_genre(file_path, model):
-    hop_length = 512
-    n_fft = 2048
-    n_mels = 128
+# Fonction pour vérifier les extensions des fichiers
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-    # Load and preprocess the audio file
-    signal, rate = librosa.load(file_path, sr=22050)  # Match model training sample rate
-    S = librosa.feature.melspectrogram(y=signal, sr=rate, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)
-    S_DB = librosa.power_to_db(S, ref=np.max)
+# Fonction pour charger et prétraiter le fichier audio
+def load_and_preprocess_file(file_path, target_shape=(150, 150)):
+    data = []
+    audio_data, sample_rate = librosa.load(file_path, sr=None)
+    chunk_duration = 4
+    overlap_duration = 2
+    chunk_samples = chunk_duration * sample_rate
+    overlap_samples = overlap_duration * sample_rate
+    
+    # Calculer le nombre de chunks
+    num_chunks = int(np.ceil((len(audio_data) - chunk_samples) / (chunk_samples - overlap_samples))) + 1
+    for i in range(num_chunks):
+        start = i * (chunk_samples - overlap_samples)
+        end = start + chunk_samples
+        chunk = audio_data[start:end]
 
-    # Resize the mel spectrogram to match the VGG19 input shape
-    img_height, img_width = 224, 224  # VGG19 standard input size
-    S_DB_resized = tf.image.resize(S_DB, (img_height, img_width))
-    S_DB_resized = S_DB_resized.numpy()  # Convert to NumPy array if needed
+        # Générer le Mel spectrogram
+        mel_spectrogram = librosa.feature.melspectrogram(y=chunk, sr=sample_rate)
+        
+        # Redimensionner le spectrogramme
+        mel_spectrogram = resize(np.expand_dims(mel_spectrogram, axis=-1), target_shape)
+        
+        # Ajouter le spectrogramme à la liste des données
+        data.append(mel_spectrogram)
+    
+    return np.array(data)
 
-    # Add batch and channel dimensions (VGG19 expects 4D input: batch, height, width, channels)
-    S_DB_input = np.expand_dims(S_DB_resized, axis=0)  # Add batch dimension
-    S_DB_input = np.expand_dims(S_DB_input, axis=-1)  # Add channel dimension (1 for grayscale)
+# Fonction pour effectuer la prédiction avec le modèle
+def model_prediction(X_test):
+    Y_pred = model.predict(X_test)
+    predicted_categories = np.argmax(Y_pred, axis=1)
+    unique_elements, counts = np.unique(predicted_categories, return_counts=True)
+    max_count = np.max(counts)
+    max_elements = unique_elements[counts == max_count]
+    return max_elements[0]
 
-    # Predict the genre
-    predictions = model.predict(S_DB_input)
-    genre_index = np.argmax(predictions)
-    return genres[genre_index]
-
-# Define a route for prediction
+# Route pour la prédiction
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Check if a file is uploaded
+    # Vérifier si la requête contient un fichier
     if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+        return jsonify({'error': 'No file part'}), 400
 
     file = request.files['file']
 
-    # Save the file to the upload folder
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
+    # Si l'utilisateur n'a pas sélectionné de fichier
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
 
-    # Predict the genre
-    try:
-        predicted_genre = predict_genre(filepath, model)
-        result = {'genre': predicted_genre}
-    except Exception as e:
-        result = {'error': str(e)}
+    # Si le fichier est autorisé
+    if file and allowed_file(file.filename):
+        # Enregistrer le fichier téléchargé
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
 
-    # Clean up uploaded file
-    os.remove(filepath)
+        # Charger et prétraiter le fichier audio
+        X_test = load_and_preprocess_file(filepath)
 
-    return jsonify(result)
+        # Effectuer la prédiction avec le modèle
+        class_index = model_prediction(X_test)
 
-# Run the app
-if __name__ == '__main__':
-    app.run(debug=True)
+        # Retourner la prédiction sous forme de réponse JSON
+        return jsonify({'predicted_genre': classes[class_index]}), 200
+
+    else:
+        return jsonify({'error': 'File type not allowed. Only .wav files are allowed.'}), 400
+
+if _name_ == '_main_':
+    # Démarrer le serveur Flask
+    app.run(debug=True, host='0.0.0.0', port=5000)
