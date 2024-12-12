@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 # Initialisation de l'application Flask
-app = Flask(_name_)
+app = Flask(__name__)
 CORS(app, origins=["http://localhost:1000"])  # Enable CORS for Angular's port
 # Charger le modèle Keras pré-entraîné (assurez-vous que le modèle est dans le même dossier que ce fichier)
 model = tf.keras.models.load_model('Trained_model.h5')
@@ -94,6 +94,6 @@ def predict():
     else:
         return jsonify({'error': 'File type not allowed. Only .wav files are allowed.'}), 400
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     # Démarrer le serveur Flask
     app.run(debug=True)
