@@ -2,7 +2,7 @@
     <h2>Upload Audio File</h2>
     
     <input type="file" (change)="onFileSelected($event)" accept=".wav" />
-    <button (click)="onUpload()" [disabled]="!selectedFile">Upload and Predict</button>
+    <button (click)="onUpload()" [disabled]="!selectedFile">Upload and Predict With VGG</button>
   
     <div *ngIf="predictionResult" class="result">
       {{ predictionResult }}
