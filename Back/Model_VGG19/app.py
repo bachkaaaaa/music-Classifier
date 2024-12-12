@@ -96,4 +96,4 @@ def predict():
 
 if _name_ == '_main_':
     # Démarrer le serveur Flask
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
